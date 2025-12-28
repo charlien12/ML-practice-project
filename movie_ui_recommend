@@ -1,0 +1,42 @@
+import streamlit as st
+import joblib
+import pandas as pd
+
+@st.cache_resource
+def load_artifacts():
+    movies = joblib.load(open("models/movie_data.pkl", "rb"))
+    similarity = joblib.load(open("models/similarity.pkl", "rb"))
+    return movies, similarity
+
+movie_df, cosine_sim = load_artifacts()
+
+def recommend(movie_title, df, similarity_matrix, top_n=5):
+    idx = df[df['title'] == movie_title].index[0]
+
+    scores = list(enumerate(similarity_matrix[idx]))
+    scores = sorted(scores, key=lambda x: x[1], reverse=True)
+
+    scores = scores[1:top_n + 1]
+    indices = [i[0] for i in scores]
+
+    return df.iloc[indices]['title'].values
+
+
+st.title("🎬 Movie Recommendation System")
+st.write("Content-Based Recommendation using NLP + TF-IDF")
+
+selected_movie = st.selectbox(
+    "Select a movie",
+    movie_df['title'].values
+)
+
+if st.button("Recommend"):
+    recommendations = recommend(
+        selected_movie,
+        movie_df,
+        cosine_sim
+    )
+
+    st.subheader("Recommended Movies:")
+    for movie in recommendations:
+        st.write(movie)
